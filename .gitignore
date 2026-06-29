@@ -6,9 +6,10 @@ __pycache__/
 venv/
 env/
 
-# Large files — don't commit videos or model weights
+# Large files — don't commit raw pipeline videos or model weights
 data/sample_videos/*.mp4
 data/sample_videos/*.avi
+# static/ videos ARE committed (needed for deployment)
 models/*.pt
 *.pt
 incidents/snapshots/

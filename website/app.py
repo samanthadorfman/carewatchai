@@ -10,8 +10,9 @@ st.set_page_config(
 )
 
 # ── Paths ────────────────────────────────────────────────────────────────────
-ROOT      = Path(__file__).parent.parent
-VIDEO_DIR = ROOT / "data" / "sample_videos"
+ROOT       = Path(__file__).parent.parent
+VIDEO_DIR  = ROOT / "data" / "sample_videos"
+STATIC_DIR = ROOT / "static"
 CSS_FILE  = Path(__file__).parent / "style.css"
 
 # ── CSS ──────────────────────────────────────────────────────────────────────
@@ -271,9 +272,13 @@ st.markdown('<div class="section-sub">Real CCTV footage processed entirely on-de
 
 demo_col1, demo_col2 = st.columns(2)
 
-# Look for any pipeline video available
-pipeline_video = next(VIDEO_DIR.glob("*_pipeline.mp4"), None)
-skeleton_video = next(VIDEO_DIR.glob("*_skeleton.mp4"), None)
+# Use static folder first (deployed), fall back to local data folder
+pipeline_video = (STATIC_DIR / "Realistic_security_camera_foot_pipeline.mp4")
+skeleton_video = (STATIC_DIR / "Realistic_security_camera_foot_skeleton.mp4")
+if not pipeline_video.exists():
+    pipeline_video = next(VIDEO_DIR.glob("*_pipeline.mp4"), None)
+if not skeleton_video.exists():
+    skeleton_video = next(VIDEO_DIR.glob("*_skeleton.mp4"), None)
 
 with demo_col1:
     st.markdown("#### 🎥 Annotated View — Fall Detected")
@@ -312,6 +317,37 @@ with demo_col2:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# Second demo row — multi-person
+multi_video   = STATIC_DIR / "this_video_sucked_she_was_alre_pipeline.mp4"
+dining_video  = STATIC_DIR / "veo_dining_pipeline.mp4"
+
+demo_col3, demo_col4 = st.columns(2)
+with demo_col3:
+    st.markdown("#### 👥 Multi-Person Tracking")
+    if multi_video.exists():
+        st.video(str(multi_video))
+    else:
+        st.markdown("""
+        <div style="background:#0d1117;border:1px solid #1a2540;border-radius:12px;
+                    padding:48px;text-align:center;color:#6b7280">
+            <div style="font-size:32px;margin-bottom:8px">👥</div>
+            <div style="font-size:14px;color:#f0f0ff">Tracks every person simultaneously.<br>Each gets their own ID and fall FSM.</div>
+        </div>""", unsafe_allow_html=True)
+
+with demo_col4:
+    st.markdown("#### 🍽️ Common Area Monitoring")
+    if dining_video.exists():
+        st.video(str(dining_video))
+    else:
+        st.markdown("""
+        <div style="background:#0d1117;border:1px solid #1a2540;border-radius:12px;
+                    padding:48px;text-align:center;color:#6b7280">
+            <div style="font-size:32px;margin-bottom:8px">🍽️</div>
+            <div style="font-size:14px;color:#f0f0ff">Dining rooms, lounges, hallways.<br>Works on existing facility cameras.</div>
+        </div>""", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
