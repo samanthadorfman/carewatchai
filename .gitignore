@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# Large files — don't commit videos or model weights
+data/sample_videos/*.mp4
+data/sample_videos/*.avi
+models/*.pt
+*.pt
+incidents/snapshots/
+incidents/skeleton_only/
+incidents/incidents.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
