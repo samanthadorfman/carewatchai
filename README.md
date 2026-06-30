@@ -20,11 +20,9 @@ All development happens in Codespaces — no large video files on your local mac
 Dependencies install automatically via `.devcontainer/devcontainer.json`. Once the Codespace finishes loading:
 
 ```bash
-# 1. Add your Kaggle token to GitHub Secrets (one-time, do this once ever):
-#    Your fork → Settings → Secrets and variables → Codespaces → New secret
-#    Name: KAGGLE_API_TOKEN  Value: your_token
+# Kaggle API token already added as a secret key to this repo. 
 
-# 2. Download Le2i dataset + run full evaluation
+# 1. Download Le2i dataset + run full evaluation
 python scripts/run_eval.py
 
 # 3. Or just test the pipeline on the sample videos (no download needed)
