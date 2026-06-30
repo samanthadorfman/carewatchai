@@ -11,34 +11,14 @@ Real-time overhead AI monitoring for senior living facilities. Detects falls, pr
 - 🔵 **Nighttime wandering** — motion detection between 10pm–6am
 - 🟠 **Restricted zone breach** — polygon zones per camera, time-gated
 
-## Development in GitHub Codespaces
+## Development 
 
-All development happens in Codespaces — no large video files on your local machine.
-
-### New Codespace
-
-Dependencies install automatically via `.devcontainer/devcontainer.json`. Once the Codespace finishes loading:
 
 ```bash
-# Kaggle API token already added as a secret key to this repo. 
-
-# 1. Download Le2i dataset + run full evaluation
+source venv/bin/activate
+pip install -r requirements.txt
+export KAGGLE_API_TOKEN=your_token
 python scripts/run_eval.py
-
-# 3. Or just test the pipeline on the sample videos (no download needed)
-python src/pipeline.py --source data/videos/sample_1.mp4 --camera hallway_01
-```
-
-### Existing Codespace (resuming work)
-
-Videos are still present — no re-download needed:
-
-```bash
-# Run evaluation (skips download since data is already there)
-python scripts/run_eval.py --skip-download
-
-# Or test pipeline on sample video
-python src/pipeline.py --source data/videos/sample_1.mp4 --camera hallway_01
 ```
 
 ### Pushing changes
