@@ -73,29 +73,30 @@ python -m streamlit run website/app.py --server.port 8502
 ```
 
 ## Project structure
-src/
+#src/
+
 
 pipeline.py           — main inference loop
 
-fall_fsm.py           — fall detection state machine
+#fall_fsm.py           — fall detection state machine
 
-inactivity_timer.py   — stillness detection
+#inactivity_timer.py   — stillness detection
 
-wandering_detector.py — nighttime wandering
+#wandering_detector.py — nighttime wandering
 
-zone_manager.py       — polygon zone logic
+#zone_manager.py       — polygon zone logic
 
-pose_utils.py         — keypoint math
+#pose_utils.py         — keypoint math
 
-gait_tracker.py       — walking speed estimation
+#gait_tracker.py       — walking speed estimation
 
-overlay.py            — visualization
+#overlay.py            — visualization
 
-incident_log.py       — SQLite logging
+#incident_log.py       — SQLite logging
 
-evaluate.py           — Le2i dataset evaluator
+#evaluate.py           — Le2i dataset evaluator
 
-scripts/
+#scripts/
 
 run_eval.py           — download Le2i + run evaluation
 
