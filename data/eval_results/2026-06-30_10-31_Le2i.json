@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-06-30T10:31:59.084032",
+  "dataset_name": "Le2i",
+  "kaggle_slug": "tuyenldvn/falldataset-imvia",
+  "subset": "all",
+  "notes": "",
+  "videos_evaluated": null,
+  "true_positives": null,
+  "false_negatives": null,
+  "false_positives": null,
+  "precision": null,
+  "recall": null,
+  "f1_score": null,
+  "avg_latency_frames": null,
+  "raw_output": "Creating new Ultralytics Settings v0.0.6 file \u2705 \nView Ultralytics Settings with 'yolo settings' or at '/Users/samanthadorf/Library/Application Support/Ultralytics/settings.json'\nUpdate Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.\nMatplotlib is building the font cache; this may take a moment.\nWARNING \u26a0\ufe0f Download failure, retrying 1/3 https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo11n-pose.pt... <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:992)>\n##O=-#     #                                                                                                                                                                                        \n#=O#-  #       #                                                                                                                                                                                    \n-#O=#     #       #                                                                                                                                                                                 \n\n##############################                                                                                                                                                                 16.0%\n#################################################################################################                                                                                              51.6%\n##########################################################################################################################################################################################     98.7%\n############################################################################################################################################################################################# 100.0%\nNo video+annotation pairs found in /var/folders/dx/2nqpxccj4nz9sgzd7bglfm700000gn/T/carewatchai_videos\nExpected structure: subset_folder/video (N).avi + Annotation_files/video (N).txt\n"
+}
