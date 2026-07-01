@@ -121,39 +121,42 @@ def parse_summary(output: str) -> dict:
     }
 
 
-def parse_failures(output: str) -> list[dict]:
+def parse_failures(output: str, subset: str | None) -> list[dict]:
     """
-    Parse per-video results from evaluate.py output.
-    Returns a list of dicts for every video, with extra detail on misses.
+    Pull per-video results (including miss diagnostics) from evaluate.py's
+    structured RESULTS_JSON line, and return the failing ones (misses and
+    false positives) with their full reasoning attached.
     """
+    match = re.search(r"^RESULTS_JSON:(.+)$", output, re.MULTILINE)
+    if not match:
+        return []
+    results = json.loads(match.group(1))
+
+    subset_folder = subset or "Coffee_room_01"
+
     failures = []
-    # Match lines like: "video (4).avi   True   MISSED   0   1   0   —   ❌ MISS"
-    pattern = re.compile(
-        r"^(video\s*\(\d+\)\.\w+)\s+"   # filename
-        r"(\w+)\s+"                       # has_fall (True/False)
-        r"(frame\s+\d+|MISSED)\s+"        # detected
-        r"(\d+)\s+(\d+)\s+(\d+)",         # TP FN FP
-        re.MULTILINE,
-    )
-    for m in pattern.finditer(output):
-        video, has_fall, detected, tp, fn, fp = m.groups()
-        missed = detected.strip() == "MISSED"
-        false_positive = int(fp) > 0
-        if missed or false_positive:
-            failures.append({
-                "video":          video.strip(),
-                "has_fall":       has_fall == "True",
-                "detected":       detected.strip(),
-                "tp":             int(tp),
-                "fn":             int(fn),
-                "fp":             int(fp),
-                "miss_type":      "false_negative" if missed else "false_positive",
-                "download_cmd":   (
-                    f'kaggle datasets download tuyenldvn/falldataset-imvia '
-                    f'-f "Coffee_room_01/Coffee_room_01/{video.strip()}" '
-                    f'-p /tmp/carewatchai_debug --unzip'
-                ),
-            })
+    for r in results:
+        if "error" in r:
+            continue
+        missed = bool(r["has_fall"]) and r["fn"] > 0
+        false_positive = r["fp"] > 0
+        if not (missed or false_positive):
+            continue
+        failures.append({
+            "video":          r["video"],
+            "has_fall":       r["has_fall"],
+            "detected":       f"frame {r['detected_frame']}" if r["detected_frame"] else "MISSED",
+            "tp":             r["tp"],
+            "fn":             r["fn"],
+            "fp":             r["fp"],
+            "miss_type":      "false_negative" if missed else "false_positive",
+            "miss_reason":    r.get("miss_reason"),
+            "download_cmd":   (
+                f'kaggle datasets download tuyenldvn/falldataset-imvia '
+                f'-f "{subset_folder}/{subset_folder}/Videos/{r["video"]}" '
+                f'-p /tmp/carewatchai_debug --unzip'
+            ),
+        })
     return failures
 
 
@@ -164,7 +167,7 @@ def save_results(dataset_name, kaggle_slug, subset, notes, summary, raw_output) 
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M")
 
-    failures = parse_failures(raw_output)
+    failures = parse_failures(raw_output, subset)
 
     result = {
         "timestamp":    now.isoformat(),
@@ -181,8 +184,11 @@ def save_results(dataset_name, kaggle_slug, subset, notes, summary, raw_output) 
         print(f"\n[INFO] {len(failures)} failure(s) recorded:")
         for f in failures:
             tag = "❌ MISS" if f["miss_type"] == "false_negative" else "⚠️  FALSE POS"
-            print(f"  {tag}  {f['video']}")
-        print(f"\n  To debug, download individual videos with the 'download_cmd' in the JSON.")
+            category = (f.get("miss_reason") or {}).get("category")
+            suffix = f"  [{category}]" if category else ""
+            print(f"  {tag}  {f['video']}{suffix}")
+        print(f"\n  Full reasoning is saved per-video under 'failures[].miss_reason' in the JSON.")
+        print(f"  To debug, download individual videos with the 'download_cmd' in the JSON.")
 
     slug_safe = dataset_name.replace("/", "-").replace(" ", "_")
     json_path = RESULTS_DIR / f"{timestamp}_{slug_safe}.json"
