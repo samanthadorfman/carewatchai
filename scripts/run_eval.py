@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -88,6 +89,88 @@ def download_dataset() -> bool:
         return False
 
     print(f"[INFO] Download complete.")
+    return True
+
+
+# Fixed CI benchmark: matches the existing historical baseline (15 videos,
+# F1=84.6%, all_runs.csv row from 2026-06-30) rather than the full 48 videos
+# actually present in Coffee_room_01 on Kaggle. Evaluating a different video
+# count than the recorded baseline would make check_regression.py's
+# comparison meaningless (different sample size, not a real regression), and
+# downloading the full subset (3.1GB) or full dataset (16GB) on every PR is
+# impractical for CI. Extend this map if other subsets get a CI job.
+CI_BENCHMARK_VIDEOS = {
+    "Coffee_room_01": list(range(1, 16)),
+}
+
+
+def _fetch_single_file(kaggle_path: str, dest: Path) -> bool:
+    """Download one file from the dataset via `-f` and place it at `dest`.
+    Kaggle wraps single-file downloads in a .zip that --unzip doesn't
+    reliably expand, and URL-encodes spaces in the local filename, so we
+    extract/rename manually rather than relying on kaggle's own unzip."""
+    if dest.exists():
+        return True
+
+    stem = Path(kaggle_path).name.replace(" ", "%20")
+    for leftover in TMP_VIDEO_DIR.glob(f"{stem}*"):
+        leftover.unlink()
+
+    result = subprocess.run([
+        sys.executable, "-m", "kaggle", "datasets", "download",
+        KAGGLE_DATASET, "-f", kaggle_path, "-p", str(TMP_VIDEO_DIR), "--force",
+    ], capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to download {kaggle_path}:\n{result.stderr}")
+        return False
+
+    candidates = list(TMP_VIDEO_DIR.glob(f"{stem}*"))
+    if not candidates:
+        print(f"[ERROR] Expected a downloaded file matching {stem}* in {TMP_VIDEO_DIR}, found none.")
+        return False
+    src = candidates[0]
+
+    if src.suffix == ".zip":
+        with zipfile.ZipFile(src) as zf:
+            inner = zf.namelist()[0]
+            with zf.open(inner) as f_in, open(dest, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        src.unlink()
+    else:
+        shutil.move(str(src), str(dest))
+    return True
+
+
+def download_subset_files(subset: str) -> bool:
+    """Download only the fixed CI_BENCHMARK_VIDEOS for `subset`, laid out in
+    the flat structure evaluate.py expects (subset/*.avi +
+    subset/Annotation_files/*.txt) — much cheaper than download_dataset()."""
+    video_nums = CI_BENCHMARK_VIDEOS.get(subset)
+    if not video_nums:
+        print(f"[ERROR] No fixed CI file list defined for subset '{subset}'. "
+              f"Known subsets: {list(CI_BENCHMARK_VIDEOS)}")
+        return False
+
+    dest_video_dir = TMP_VIDEO_DIR / subset
+    dest_ann_dir   = dest_video_dir / "Annotation_files"
+    dest_video_dir.mkdir(parents=True, exist_ok=True)
+    dest_ann_dir.mkdir(parents=True, exist_ok=True)
+    setup_kaggle_json()
+
+    print(f"[INFO] Downloading {len(video_nums)} fixed videos for subset '{subset}' "
+          f"(CI benchmark, matches historical baseline)...\n")
+
+    for n in video_nums:
+        name = f"video ({n})"
+        ok_video = _fetch_single_file(
+            f"{subset}/{subset}/Videos/{name}.avi", dest_video_dir / f"{name}.avi")
+        ok_ann = _fetch_single_file(
+            f"{subset}/{subset}/Annotation_files/{name}.txt", dest_ann_dir / f"{name}.txt")
+        if not (ok_video and ok_ann):
+            return False
+        print(f"  fetched {name}")
+
+    print(f"\n[INFO] Download complete: {dest_video_dir}")
     return True
 
 
@@ -276,14 +359,25 @@ def main() -> None:
                         help="Label for this run, e.g. 'Le2i-low-quality'")
     parser.add_argument("--notes",         default="",
                         help="Free-text notes, e.g. 'after tuning inactivity threshold'")
+    parser.add_argument("--full-subset",   action="store_true",
+                        help="Download the complete subset instead of the fixed CI "
+                             "benchmark file list (slower, not comparable to the "
+                             "existing history in all_runs.csv)")
     args = parser.parse_args()
+
+    use_fixed_list = (args.subset in CI_BENCHMARK_VIDEOS) and not args.full_subset
 
     try:
         # ── Download ──────────────────────────────────────────────────────────
         if not args.skip_download:
-            already_present = TMP_VIDEO_DIR.exists() and any(TMP_VIDEO_DIR.rglob("Annotation_files"))
+            already_present = TMP_VIDEO_DIR.exists() and any(TMP_VIDEO_DIR.rglob("*.avi"))
             if already_present:
                 print(f"[INFO] Videos already in {TMP_VIDEO_DIR}, skipping download.")
+            elif use_fixed_list:
+                if not check_kaggle_credentials():
+                    sys.exit(1)
+                if not download_subset_files(args.subset):
+                    sys.exit(1)
             else:
                 if not check_kaggle_credentials():
                     sys.exit(1)
