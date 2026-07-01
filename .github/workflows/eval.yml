@@ -44,20 +44,27 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # PYTHONFAULTHANDLER on a prior run caught a real traceback for
-          # the "corrupted double-linked list" crash we kept hitting here:
-          # it happens inside torch's own fuse_conv_and_bn (model loading),
-          # and the crash report's "Extension modules" list included
-          # cuda.bindings.* even though this runner has no GPU. Default pip
-          # installs of `torch` bundle CUDA support, and probing/initializing
-          # CUDA bindings on a driver-less machine is a known trigger for
-          # exactly this kind of heap corruption. Installing the CPU-only
-          # torch build first (before requirements.txt) avoids that
-          # entirely, rather than the OMP/BLAS thread-count and
-          # KMP_DUPLICATE_LIB_OK mitigations tried before this — those
-          # targeted the wrong layer (opencv/lap OpenMP conflicts) and did
-          # not fix it, kept here anyway since they're harmless.
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          # Ubuntu runner keeps crashing with glibc heap-corruption aborts
+          # ("corrupted double-linked list" / "double free or corruption
+          # (!prev)" / "munmap_chunk(): invalid pointer" — all the same
+          # family of bug, different messages) always at the exact same
+          # spot: torch's native Conv2d forward, on the first real
+          # inference call. Doesn't reproduce locally on macOS. Ruled out
+          # so far: CUDA bindings on a driver-less machine (fixed a
+          # different, now-gone crash upstream of this one but not this
+          # one), OpenMP/BLAS thread oversubscription, duplicate OpenMP
+          # runtimes (KMP_DUPLICATE_LIB_OK), and AVX-512 CPU-capability
+          # fallback (ATEN_CPU_CAPABILITY) — none of those fixed it, still
+          # kept below since they're harmless. torch doesn't even declare a
+          # hard numpy dependency in its wheel metadata, so a numpy pin
+          # isn't well-motivated either. Trying an older, more mature,
+          # widely-used torch/torchvision release instead of latest
+          # (2.5.1/CPU-index-latest) — PyTorch 2.5 changed its CPU
+          # convolution backend (oneDNN integration), and there's a known
+          # history of oneDNN-related CPU crashes on certain virtualized
+          # CPUs around that release. Unverified locally (still can't
+          # reproduce this crash on macOS to confirm before pushing).
+          pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
       - name: Run Le2i eval (fixed CI benchmark subset)
