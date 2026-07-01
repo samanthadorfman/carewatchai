@@ -1,4 +1,8 @@
 ultralytics>=8.3.0
+lap==0.5.13   # ByteTrack dep; ultralytics lazily auto-installs this mid-run
+              # if missing, which crashed CI ("corrupted double-linked list")
+              # since the new native extension isn't safe to use without a
+              # process restart. Pinning here installs it upfront instead.
 opencv-python-headless>=4.9.0
 numpy>=1.26.0
 pandas>=2.2.0
